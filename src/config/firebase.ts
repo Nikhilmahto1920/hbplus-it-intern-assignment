@@ -10,26 +10,6 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
 // ---------------------------------------------------------------------------
-// Env-var guard — fail fast if the Firebase keys are missing
-// ---------------------------------------------------------------------------
-const REQUIRED_VARS = [
-  'EXPO_PUBLIC_FIREBASE_API_KEY',
-  'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
-  'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'EXPO_PUBLIC_FIREBASE_APP_ID',
-] as const;
-
-const missing = REQUIRED_VARS.filter((k) => !process.env[k]);
-if (missing.length > 0) {
-  throw new Error(
-    `Missing Firebase env variables: ${missing.join(', ')}.\n` +
-      'Copy .env.example → .env and fill in your Firebase project values.'
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Firebase config from environment
 // ---------------------------------------------------------------------------
 const firebaseConfig = {
@@ -40,6 +20,20 @@ const firebaseConfig = {
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID!,
 };
+
+// ---------------------------------------------------------------------------
+// Env-var guard — fail fast if the Firebase keys are missing
+// ---------------------------------------------------------------------------
+const missing = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missing.length > 0) {
+  throw new Error(
+    `Missing Firebase env variables: ${missing.join(', ')}.\n` +
+      'Copy .env.example → .env and fill in your Firebase project values.'
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Singleton initialisation
