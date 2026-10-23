@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper: is the caller an authenticated user with an allowed-domain email? ──
+    function isAllowedUser() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('.*@hbplus[.]fit$');
+        // If you change ALLOWED_DOMAIN, update the regex above to match.
+    }
+
+    // ── Helper: is the caller an admin? ──
+    function isAdmin() {
+      return isAllowedUser()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── Collection Group: Logins ──
+    match /{path=**}/logins/{loginId} {
+      allow read: if isAdmin();
+    }
+
+    match /users/{userId} {
+
+      // READ: users can read their own doc; admins can read any doc
+      allow read: if isAllowedUser()
+        && (request.auth.uid == userId || isAdmin());
+
+      // CREATE: users can only create their own doc, role must be "user"
+      allow create: if isAllowedUser()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'user'
+        && request.resource.data.uid == userId
+        && request.resource.data.email == request.auth.token.email;
+
+      // UPDATE: user can update own doc but NEVER role; admin can update other users' roles
+      allow update: if isAllowedUser() && (
+        (request.auth.uid == userId && request.resource.data.role == resource.data.role) ||
+        (isAdmin() && request.auth.uid != userId)
+      );
+
+      // DELETE: not allowed
+      allow delete: if false;
+
+      // ── Subcollection: users/{uid}/logins ──
+      match /logins/{loginId} {
+        // Allow create if the caller owns it
+        allow create: if isAllowedUser() && request.auth.uid == userId;
+        // Allow read if the owner or an admin
+        allow read: if isAllowedUser() && (request.auth.uid == userId || isAdmin());
+        allow update, delete: if false;
+      }
+    }
+
+    // ── Deny everything else by default ──
+  }
+}
