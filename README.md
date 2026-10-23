@@ -305,7 +305,7 @@ npm run build:web
 
 ## Deployment to Netlify
 
-The web version is fully configured for continuous deployment on [Netlify](https://www.netlify.com/):
+The web version is fully configured for continuous deployment on https://hbplus-secure-login.netlify.app
 
 ### Configuration Details
 - **Build command**: `npx expo export -p web` (or `npm run build:web`)
